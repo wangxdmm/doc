@@ -53,7 +53,7 @@ pub enum Commands {
         #[arg(short, long, default_value_t = false)]
         detail: bool,
     },
-    #[command(long_about = "See all config")]
+    #[command(long_about = "Init config, you can use -f to update config forcely, -u to get remote config")]
     Init {
         #[arg(short, long, default_value_t = false)]
         force: bool,

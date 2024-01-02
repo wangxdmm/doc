@@ -1,7 +1,7 @@
 use crate::core::{Doc, OpenOption};
 use crate::error::Error as DocError;
 use ansi_term::Colour;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use std::{
     collections::HashMap,
@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
 pub struct Config {
     pub loc: Option<PathBuf>,
     pub map: HashMap<String, Doc>,
@@ -23,7 +23,7 @@ impl Config {
                 let path = Path::new(&loc).to_path_buf();
 
                 if path.is_file() {
-                    read(path)
+                    read(&path)
                 } else {
                     Err(Error::new(
                         ErrorKind::Other,
@@ -38,7 +38,7 @@ impl Config {
                 let home = dirs::home_dir();
 
                 if let Some(home) = home {
-                    read(home.join(".doc.toml"))
+                    read(&home.join(".doc.toml"))
                 } else {
                     Err(Error::new(
                         ErrorKind::Other,
@@ -118,27 +118,21 @@ impl Config {
     }
 }
 
-pub fn read(loc: PathBuf) -> Result<Config, Error> {
-    let mut cont = String::new();
-    let mut config = Config {
-        loc: Some(loc.clone()),
-        map: HashMap::new(),
-    };
-    File::open(&loc)?.read_to_string(&mut cont)?;
-
-    let parse_result = toml::from_str::<Config>(&cont);
+pub fn parse_config(cont: &str) -> Result<Config, Error> {
+    let parse_result = toml::from_str::<Config>(cont);
 
     match parse_result {
-        Ok(value) => {
-            config.map = value.map;
-            Ok(config)
+        Ok(value) => Ok(value),
+        Err(err) => {
+            println!("Parse Error, error content is: {}", cont);
+            Err(Error::new(ErrorKind::InvalidData, err))
         }
-        Err(_) => Err(Error::new(
-            ErrorKind::InvalidData,
-            DocError::new(&format!(
-                "❌It seems that some errors occur in your toml config, in {}",
-                loc.display()
-            )),
-        )),
     }
+}
+
+pub fn read(loc: &PathBuf) -> Result<Config, Error> {
+    let mut cont = String::new();
+    File::open(&loc)?.read_to_string(&mut cont)?;
+
+    parse_config(&cont)
 }

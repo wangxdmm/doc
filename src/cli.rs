@@ -1,9 +1,9 @@
 use std::{
-    fs,
-    io::{Error, ErrorKind},
+    fs::{self, File},
+    io::{Error, ErrorKind, Read},
 };
 
-use crate::config::Config;
+use crate::config::{parse_config, Config};
 use crate::{core::*, tpl::INIT_CONFIG};
 use ansi_term::Colour;
 use clap::{Parser, Subcommand};
@@ -53,12 +53,16 @@ pub enum Commands {
         #[arg(short, long, default_value_t = false)]
         detail: bool,
     },
-    #[command(long_about = "Init config, you can use -f to update config forcely, -u to get remote config")]
+    #[command(
+        long_about = "Init config, you can use -f to update config forcely, -u to get remote config"
+    )]
     Init {
         #[arg(short, long, default_value_t = false)]
         force: bool,
         #[arg(short, long)]
         url: Option<String>,
+        #[arg(short, long, default_value_t = false)]
+        merge: bool,
     },
 }
 
@@ -117,27 +121,45 @@ pub fn run() -> Result<(), Error> {
                 }
             })
         }
-        Some(Commands::Init { force, url }) => {
+        Some(Commands::Init { force, url, merge }) => {
             let home = dirs::home_dir();
             let is_force = *force;
+            let should_merge = *merge;
             let mut config = String::from(INIT_CONFIG);
+            let mut remote_config = String::new();
 
             if let Some(home) = home {
                 let config_path = home.join(".doc.toml");
                 if let Some(url) = url {
-                    config = get_remote_config(url)?
+                    remote_config = get_remote_config(url)?;
                 }
+
                 if config_path.exists() {
-                    if !is_force {
-                        println!(
-                            "❗Config file already exist, If you want to overwrite it, add '-f'"
-                        );
-                        return Ok(());
+                    config.clear();
+                    File::open(&config_path)?.read_to_string(&mut config)?;
+
+                    let mut user_config = parse_config(&config)?;
+
+                    if should_merge {
+                        let rc_config = parse_config(&remote_config)?;
+                        rc_config.map.keys().for_each(|s| {
+                            if let Some(doc) = rc_config.map.get(s) {
+                                user_config.map.insert(s.to_string(), doc.clone());
+                            }
+                        });
+
+                        config = toml::to_string(&user_config).unwrap();
                     } else {
-                        fs::write(&config_path, config)?
+                        if !is_force {
+                            println!(
+                                "❗Config file already exist, If you want to overwrite it, add '-f'"
+                            );
+                            return Ok(());
+                        }
                     }
+                    fs::write(&config_path, config)?;
                 } else {
-                    fs::write(&config_path, config)?
+                    fs::write(&config_path, config)?;
                 }
 
                 println!("Success init config in {}", &config_path.display())

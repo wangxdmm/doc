@@ -7,4 +7,8 @@ url = "https://doc.rust-lang.org"
 search = "https://doc.rust-lang.org/std/index.html?search={}"
 play = "https://play.rust-lang.org/"
 rep = "https://github.com/rust-lang/rust"
+
+[map.dcf]
+full = "doc config"
+url = "https://github.com/wangxdmm/doc_config"
 "#;

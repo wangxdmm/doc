@@ -13,7 +13,7 @@ So, `doc` is a command-line tool that can help you open `document`, `playground`
 
 ## Install
 
-See Release.
+See Release
 
 ## Usage
 

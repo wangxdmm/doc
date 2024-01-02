@@ -1,0 +1,118 @@
+name: Build Commit
+
+on:
+  push:
+    branches:
+      - dev
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    name: Linux Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          [
+            x86_64-unknown-linux-musl,
+            x86_64-unknown-linux-gnu,
+            i686-unknown-linux-gnu,
+            aarch64-unknown-linux-gnu,
+          ]
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v3
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+      - name: Install Build-Tools
+        run: sudo apt-get update && sudo apt-get install build-essential gcc-multilib
+      - name: Build target
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{ matrix.target }}
+      - name: Upload Action Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: doc_${{ runner.OS }}_${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/doc
+
+  windows:
+    name: Windows Build
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        target: [i686-pc-windows-msvc, x86_64-pc-windows-msvc]
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v3
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+      - name: Build target
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
+      - name: Upload Action Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: doc_${{ runner.OS }}_${{ matrix.target }}.exe
+          path: target/${{ matrix.target }}/release/doc.exe
+
+  macos:
+    name: MacOS Build
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v3
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+      - name: Build target
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
+      - name: Upload Action Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: doc_${{ runner.OS }}_${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/doc

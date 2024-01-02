@@ -99,15 +99,17 @@ impl Config {
             Some(_) => doc_name = name.to_string(),
             None => {
                 self.walk(|n, doc| {
-                    if let Some(doc) = doc {
-                        if doc.full.is_some() && doc.full.as_ref().unwrap() == name {
+                    if let Some(Doc {
+                        full: Some(full), ..
+                    }) = doc
+                    {
+                        if full == name {
                             doc_name = n.to_string()
                         }
                     }
                 });
             }
         }
-
         if doc_name.is_empty() {
             None
         } else {

@@ -1,10 +1,12 @@
 use crate::core::{Doc, OpenOption};
 use crate::error::Error as DocError;
+use crate::tpl::INIT_CONFIG;
 use ansi_term::Colour;
 use serde::{Deserialize, Serialize};
 
+use std::fs;
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fs::File,
     io::{Error, ErrorKind, Read},
     path::{Path, PathBuf},
@@ -13,7 +15,7 @@ use std::{
 #[derive(Deserialize, Debug, Serialize)]
 pub struct Config {
     pub loc: Option<PathBuf>,
-    pub map: HashMap<String, Doc>,
+    pub map: BTreeMap<String, Doc>,
 }
 
 impl Config {
@@ -49,6 +51,32 @@ impl Config {
         }
     }
 
+    pub fn new_empty() -> Config {
+        Config {
+            loc: None,
+            map: BTreeMap::new(),
+        }
+    }
+
+    pub fn save(&self) -> Result<(), Error> {
+        let Config { loc, map } = self;
+        let mut content = String::from(INIT_CONFIG);
+
+        if !map.is_empty() {
+            content = self.to_string()?
+        }
+
+        if let Some(loc) = loc {
+            fs::write(loc, content)?
+        }
+
+        Ok(())
+    }
+
+    pub fn to_string(&self) -> Result<String, Error> {
+        toml::to_string(self).map_err(|err| Error::new(ErrorKind::InvalidData, err))
+    }
+
     pub fn open(&self, name: &str, option: &OpenOption) -> Result<(), Error> {
         match self.find(name) {
             Some(doc) => {
@@ -61,11 +89,9 @@ impl Config {
                     name
                 );
 
-                self.walk(|n, doc| {
-                    if let Some(doc) = doc {
-                        if doc.contains(n, &name[0..1]) {
-                            println!("{}", Colour::Yellow.paint(doc.get_printed_name(n)));
-                        }
+                self.walk_config(|n, doc| {
+                    if doc.contains(n, &name[0..1]) {
+                        println!("{}", Colour::Yellow.paint(doc.get_printed_name(n)));
                     }
                 });
                 Ok(())
@@ -79,16 +105,14 @@ impl Config {
         }
     }
 
-    pub fn walk<T>(&self, mut call: T)
+    // TODO remove it ??
+    pub fn walk_config<T>(&self, mut call: T)
     where
-        T: FnMut(&String, Option<&Doc>),
+        T: FnMut(&String, &Doc),
     {
-        let mut ks: Vec<_> = self.map.keys().collect();
-
-        ks.sort();
-
-        for n in ks {
-            call(n, self.map.get(n))
+        // BTree has already sorted
+        for (n, doc) in &self.map {
+            call(n, &doc)
         }
     }
 
@@ -98,10 +122,10 @@ impl Config {
         match self.map.get(name) {
             Some(_) => doc_name = name.to_string(),
             None => {
-                self.walk(|n, doc| {
-                    if let Some(Doc {
+                self.walk_config(|n, doc| {
+                    if let Doc {
                         full: Some(full), ..
-                    }) = doc
+                    } = doc
                     {
                         if full == name {
                             doc_name = n.to_string()
@@ -124,7 +148,7 @@ pub fn parse_config(cont: &str) -> Result<Config, Error> {
     match parse_result {
         Ok(value) => Ok(value),
         Err(err) => {
-            println!("Parse Error, error content is: {}", cont);
+            println!("❗ Parse Error, error content is: {}", cont);
             Err(Error::new(ErrorKind::InvalidData, err))
         }
     }
@@ -135,4 +159,17 @@ pub fn read(loc: &PathBuf) -> Result<Config, Error> {
     File::open(&loc)?.read_to_string(&mut cont)?;
 
     parse_config(&cont)
+}
+
+pub fn save(loc: &PathBuf, content: &str) -> Result<(), Error> {
+    fs::write(
+        loc,
+        if content.is_empty() {
+            INIT_CONFIG
+        } else {
+            content
+        },
+    )?;
+
+    Ok(())
 }

@@ -1,9 +1,9 @@
 use std::{
-    fs::{self, File},
+    fs::File,
     io::{Error, ErrorKind, Read},
 };
 
-use crate::config::{parse_config, Config};
+use crate::config::{self, parse_config, Config};
 use crate::{core::*, tpl::INIT_CONFIG};
 use ansi_term::Colour;
 use clap::{Parser, Subcommand};
@@ -109,15 +109,13 @@ pub fn run() -> Result<(), Error> {
             let config = Config::new(cli.dir)?;
             println!("{}", Colour::Yellow.paint("docs:"));
 
-            config.walk(|n, doc| {
+            config.walk_config(|n, doc| {
                 if let Some(f) = filter {
-                    if let Some(doc) = doc {
-                        if doc.contains(n, f) {
-                            config.view(n, *detail)
-                        }
+                    if doc.contains(n, f) {
+                        config.view(n, *detail)
                     }
                 } else {
-                    config.view(n, *detail)
+                    config.view(&n, *detail)
                 }
             })
         }
@@ -125,7 +123,7 @@ pub fn run() -> Result<(), Error> {
             let home = dirs::home_dir();
             let is_force = *force;
             let should_merge = *merge;
-            let mut config = String::from(INIT_CONFIG);
+            let mut write_config = String::new();
             let mut remote_config = String::new();
 
             if let Some(home) = home {
@@ -135,10 +133,13 @@ pub fn run() -> Result<(), Error> {
                 }
 
                 if config_path.exists() {
-                    config.clear();
-                    File::open(&config_path)?.read_to_string(&mut config)?;
+                    File::open(&config_path)?.read_to_string(&mut write_config)?;
 
-                    let mut user_config = parse_config(&config)?;
+                    let mut user_config = if write_config.is_empty() {
+                        Config::new_empty()
+                    } else {
+                        parse_config(&write_config)?
+                    };
 
                     if should_merge {
                         let rc_config = parse_config(&remote_config)?;
@@ -148,18 +149,22 @@ pub fn run() -> Result<(), Error> {
                             }
                         });
 
-                        config = toml::to_string(&user_config).unwrap();
-                    } else {
-                        if !is_force {
-                            println!(
-                                "❗Config file already exist, If you want to overwrite it, add '-f'"
-                            );
-                            return Ok(());
-                        }
+                        write_config = user_config.to_string()?;
                     }
-                    fs::write(&config_path, config)?;
+
+                    if is_force && !remote_config.is_empty() {
+                        config::save(&config_path, &remote_config)?;
+                        return Ok(());
+                    }
+
+                    config::save(&config_path, &write_config)?;
                 } else {
-                    fs::write(&config_path, config)?;
+                    write_config = String::from(if remote_config.is_empty() {
+                        INIT_CONFIG
+                    } else {
+                        &remote_config
+                    });
+                    config::save(&config_path, &write_config)?;
                 }
 
                 println!("Success init config in {}", &config_path.display())
@@ -171,16 +176,10 @@ pub fn run() -> Result<(), Error> {
             let config = Config::new(cli.dir)?;
             if cli.name.is_none() {
                 println!("❓Please select one of the names below to see, or just use '-s' to search by google \neg: doc xx -s 👇:");
-                config.walk(|n, doc| {
+                config.walk_config(|n, doc| {
                     print!(
                         "{} ",
-                        if doc.is_some() {
-                            Colour::Green
-                                .paint(doc.unwrap().get_printed_name(n))
-                                .to_string()
-                        } else {
-                            String::new()
-                        }
+                        Colour::Green.paint(doc.get_printed_name(n)).to_string()
                     )
                 });
                 println!("\n");

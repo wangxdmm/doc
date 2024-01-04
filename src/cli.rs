@@ -174,7 +174,7 @@ pub fn run() -> Result<(), Error> {
             } else {
                 return Err(Error::new(
                     ErrorKind::NotFound,
-                    Log::Err("Can not find home dir.").to_string(),
+                    Log::Err("Can not find home dir.").mes(),
                 ));
             }
         }

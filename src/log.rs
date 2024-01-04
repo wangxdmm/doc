@@ -8,7 +8,7 @@ pub enum Log<'a> {
 }
 
 impl<'a> Log<'a> {
-    pub fn to_string(self) -> String {
+    pub fn mes(&self) -> String {
         match self {
             Self::Err(str) => Colour::Red.paint(String::from("❌") + str).to_string(),
             Self::Warn(str) => Colour::Yellow.paint(String::from("❗") + str).to_string(),
@@ -21,7 +21,7 @@ impl<'a> Log<'a> {
         if let Self::Info(str) = self {
             println!("{}", str)
         } else {
-            println!("{}", self.to_string())
+            println!("{}", self.mes())
         }
     }
 }

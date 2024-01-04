@@ -36,7 +36,7 @@ impl Config {
                                 &"Can not find config file by {}"
                                     .format(&[path.display().to_string()]),
                             )
-                            .to_string(),
+                            .mes(),
                         ),
                     ))
                 }
@@ -49,7 +49,7 @@ impl Config {
                 } else {
                     Err(Error::new(
                         ErrorKind::Other,
-                        DocError::new(&Log::Err("Can not find home dir.").to_string()),
+                        DocError::new(&Log::Err("Can not find home dir.").mes()),
                     ))
                 }
             }
@@ -167,7 +167,7 @@ pub fn parse_config(cont: &str) -> Result<Config, Error> {
     match parse_result {
         Ok(value) => Ok(value),
         Err(err) => {
-            Log::Err(&"Parse Error, error content is: {}".format(&[cont]));
+            Log::Err(&"Parse Error, error content is: {}".format(&[cont])).println();
             Err(Error::new(ErrorKind::InvalidData, err))
         }
     }

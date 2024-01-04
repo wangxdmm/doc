@@ -1,3 +1,12 @@
+# [0.4.0](https://github.com/wangxdmm/doc/compare/v0.3.0...v0.4.0) (2024-01-04)
+
+
+### Features
+
+* ops log ([ae652c1](https://github.com/wangxdmm/doc/commit/ae652c128f43cf61a26ec241d975c2ad6b500584))
+
+
+
 # [0.3.0](https://github.com/wangxdmm/doc/compare/v0.2.0...v0.3.0) (2024-01-03)
 
 

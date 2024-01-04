@@ -1,21 +1,21 @@
 use std::{error, fmt};
 
 #[derive(Debug)]
-pub struct Error {
+pub struct DocError {
     des: String,
 }
 
-impl Error {
+impl DocError {
     pub fn new(des: &str) -> Self {
-        Error {
+        DocError {
             des: des.to_string(),
         }
     }
 }
 
-impl error::Error for Error {}
+impl error::Error for DocError {}
 
-impl fmt::Display for Error {
+impl fmt::Display for DocError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Config Error {}", self.des)
     }

@@ -3,6 +3,8 @@ use dyn_fmt::AsStrFormatExt;
 use serde::{Deserialize, Serialize};
 use std::io::Error;
 
+use crate::log::Log;
+
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Doc {
     pub full: Option<String>,
@@ -60,9 +62,9 @@ impl Doc {
                     .paint(self.get_printed_name(name))
                     .to_string(),
                 url,
-                &rep.to_owned().unwrap_or("--".to_string()),
-                &play.to_owned().unwrap_or("--".to_string()),
-                &search.to_owned().unwrap_or("--".to_string()),
+                &rep.to_owned().unwrap_or("-/-".to_string()),
+                &play.to_owned().unwrap_or("-/-".to_string()),
+                &search.to_owned().unwrap_or("-/-".to_string()),
             ])
         } else {
             "🔎 {}: {}".format([
@@ -73,6 +75,6 @@ impl Doc {
             ])
         };
 
-        println!("{}", s)
+        Log::Info(&s).println()
     }
 }

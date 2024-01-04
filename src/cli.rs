@@ -3,7 +3,10 @@ use std::{
     io::{Error, ErrorKind, Read},
 };
 
-use crate::config::{self, parse_config, Config};
+use crate::{
+    config::{self, parse_config, Config},
+    log::Log,
+};
 use crate::{core::*, tpl::INIT_CONFIG};
 use ansi_term::Colour;
 use clap::{Parser, Subcommand};
@@ -115,7 +118,7 @@ pub fn run() -> Result<(), Error> {
                         config.view(n, *detail)
                     }
                 } else {
-                    config.view(&n, *detail)
+                    config.view(n, *detail)
                 }
             })
         }
@@ -167,20 +170,20 @@ pub fn run() -> Result<(), Error> {
                     config::save(&config_path, &write_config)?;
                 }
 
-                println!("Success init config in {}", &config_path.display())
+                Log::Suc(&"Success init config in {}".format([&config_path.display()])).println();
             } else {
-                return Err(Error::new(ErrorKind::NotFound, "❗Can not find home dir."));
+                return Err(Error::new(
+                    ErrorKind::NotFound,
+                    Log::Err("Can not find home dir.").to_string(),
+                ));
             }
         }
         None => {
             let config = Config::new(cli.dir)?;
             if cli.name.is_none() {
-                println!("❓Please select one of the names below to see, or just use '-s' to search by google \neg: doc xx -s 👇:");
+                Log::Warn("Please select one of the names below to see, or just use '-s' to search by google \neg: doc xx -s 👇:").println();
                 config.walk_config(|n, doc| {
-                    print!(
-                        "{} ",
-                        Colour::Green.paint(doc.get_printed_name(n)).to_string()
-                    )
+                    print!("{} ", Colour::Green.paint(doc.get_printed_name(n)))
                 });
                 println!("\n");
             }

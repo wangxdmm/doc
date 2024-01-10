@@ -12,6 +12,7 @@ pub struct Doc {
     pub rep: Option<String>,
     pub play: Option<String>,
     pub search: Option<String>,
+    pub strategy: Option<String>,
 }
 
 pub struct OpenOption {
@@ -49,11 +50,11 @@ impl Doc {
 
     pub fn view(&self, name: &str, detail: bool) {
         let Doc {
-            full: _,
             url,
             rep,
             play,
             search,
+            ..
         } = self;
 
         let s: String = if detail {
